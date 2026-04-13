@@ -218,4 +218,39 @@ const demo = (req, res) => {
   });
 };
 
-module.exports = { analyze, history, demo };
+/**
+ * POST /report
+ * Accepts a user-submitted report. Stores it in memory and returns a confirmation.
+ * In production, this would write to a DB / alert system.
+ */
+const reportStore = []; // simple in-memory list of user reports
+
+const report = (req, res) => {
+  const { scanId, reason, contact } = req.body;
+
+  if (!scanId && !reason) {
+    return res.status(400).json({
+      success: false,
+      error: "Provide at least a scanId or reason to file a report."
+    });
+  }
+
+  const entry = {
+    id: require("crypto").randomUUID(),
+    scanId: scanId || null,
+    reason: reason || "Not specified",
+    contact: contact || "Anonymous",
+    reportedAt: new Date().toISOString()
+  };
+
+  reportStore.push(entry);
+
+  return res.status(200).json({
+    success: true,
+    message: "Thank you for your report. We've logged it for review.",
+    reportId: entry.id,
+    reportedAt: entry.reportedAt
+  });
+};
+
+module.exports = { analyze, history, demo, report };

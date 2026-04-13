@@ -68,6 +68,14 @@ router.get("/history", history);
 router.get("/demo", demo);
 
 /**
+ * POST /report
+ * Store / acknowledge a user-flagged report. Returns a confirmation.
+ * In production, this could trigger email alerts or write to a DB.
+ */
+const { report } = require("../controllers/analyzeController");
+router.post("/report", report);
+
+/**
  * GET /health
  * Quick health check endpoint.
  */
