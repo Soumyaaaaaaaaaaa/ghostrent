@@ -1,5 +1,6 @@
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTheme } from '../context/ThemeContext'
+import { useAuth } from '../context/AuthContext'
 
 const NAV_LINKS = [
   { to: '/',        label: 'Home' },
@@ -9,7 +10,14 @@ const NAV_LINKS = [
 
 export default function Navbar() {
   const { theme, toggle } = useTheme()
+  const { isAuthenticated, logout } = useAuth()
   const { pathname } = useLocation()
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    logout()
+    navigate('/auth')
+  }
 
   return (
     <nav className="navbar">
@@ -31,6 +39,15 @@ export default function Navbar() {
             {label}
           </Link>
         ))}
+        {isAuthenticated ? (
+          <button onClick={handleLogout} className="nav-link" style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+            Logout
+          </button>
+        ) : (
+          <Link to="/auth" className="nav-link" style={{ color: 'var(--accent)', fontWeight: 600 }}>
+            Login
+          </Link>
+        )}
       </div>
 
       <button

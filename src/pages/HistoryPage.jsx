@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
+import { useAuth } from '../context/AuthContext'
 
 const API = 'http://localhost:3000'
 const RISK_CLASS = { Low: 'low', Medium: 'medium', High: 'high' }
@@ -20,11 +21,15 @@ export default function HistoryPage() {
   const [filter, setFilter]     = useState('all')
   const [search, setSearch]     = useState('')
   const [cleared, setCleared]   = useState(false)
+  const { token, logout }       = useAuth()
 
   const fetchHistory = async () => {
     setLoading(true); setError(null)
     try {
-      const r = await fetch(`${API}/history`)
+      const r = await fetch(`${API}/history`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (r.status === 401) { logout(); return; }
       const d = await r.json()
       if (d.success) {
         setHistory(d.data)

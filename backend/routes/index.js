@@ -6,6 +6,7 @@
 const express = require("express");
 const router = express.Router();
 const { analyze, history, demo } = require("../controllers/analyzeController");
+const authMiddleware = require("../middleware/authMiddleware");
 
 // ─── Input Validation Middleware ────────────────────────────────────────────
 
@@ -53,13 +54,13 @@ const validateAnalyzeInput = (req, res, next) => {
  *
  * Body: { title, description, price, location, contact, images[], chatText }
  */
-router.post("/analyze", validateAnalyzeInput, analyze);
+router.post("/analyze", authMiddleware, validateAnalyzeInput, analyze);
 
 /**
  * GET /history
  * Returns all previously scanned listings summary.
  */
-router.get("/history", history);
+router.get("/history", authMiddleware, history);
 
 /**
  * GET /demo
