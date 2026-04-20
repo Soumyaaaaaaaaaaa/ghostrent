@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 
 export default function AuthPage() {
@@ -37,6 +38,11 @@ export default function AuthPage() {
       return setError("Please provide a valid email address.");
     }
 
+    // Frontend password check
+    if (!isLogin && formData.password.length < 6) {
+      return setError("Password must be at least 6 characters.");
+    }
+
     setLoading(true);
 
     try {
@@ -48,26 +54,18 @@ export default function AuthPage() {
         ...( !isLogin && { name: formData.name } )
       };
 
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const res = await axios.post(endpoint, payload);
+      const data = res.data;
 
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || "Authentication failed");
-      }
-
-      // Success
+      // Axios throws for 4xx/5xx, so if we're here, it's successful
       login(data.token, data.user);
       navigate("/analyze");
 
     } catch (err) {
       console.error("Auth error:", err);
-      // Clean display of error to user
-      setError(err.message || "An unexpected error occurred.");
+      // Handle Axios errors safely and display backend message
+      const errorMessage = err.response?.data?.message || err.message || "An unexpected error occurred.";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

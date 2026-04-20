@@ -15,6 +15,7 @@ const signToken = (id) => {
  * @route   POST /auth/signup
  */
 exports.signup = async (req, res) => {
+  console.log("Signup Request Body:", req.body); // Debugging line
   try {
     const { name, email, password, phone } = req.body;
 
@@ -54,20 +55,7 @@ exports.signup = async (req, res) => {
     });
   } catch (error) {
     console.error("[Signup Error]", error);
-    
-    // Handle Mongoose validation errors
-    if (error.name === "ValidationError") {
-      const messages = Object.values(error.errors).map((val) => val.message);
-      return res.status(400).json({
-        success: false,
-        message: messages.join(", "),
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: "An error occurred during signup.",
-    });
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -116,10 +104,7 @@ exports.login = async (req, res) => {
     });
   } catch (error) {
     console.error("[Login Error]", error);
-    res.status(500).json({
-      success: false,
-      message: "An error occurred during login.",
-    });
+    res.status(401).json({ message: error.message || "An error occurred during login." });
   }
 };
 
