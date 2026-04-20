@@ -13,11 +13,26 @@
  * ╚═══════════════════════════════════════════════════════════════════════╝
  */
 
+require("dotenv").config(); // Load .env variables (GROQ_API_KEY, etc.)
+
 const express = require("express");
 const cors    = require("cors");
 const helmet  = require("helmet");
 const morgan  = require("morgan");
+const mongoose = require("mongoose");
 const routes  = require("./routes/index");
+const authRoutes = require("./routes/auth");
+
+// ─── Process Crash Handlers ─────────────────────────────────────────────────
+process.on("uncaughtException", (err) => {
+  console.error("[CRITICAL] Uncaught Exception:", err);
+  // Keep server running as requested by user
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("[CRITICAL] Unhandled Rejection at:", promise, "reason:", reason);
+  // Keep server running
+});
 
 // ─── App Setup ──────────────────────────────────────────────────────────────
 
@@ -34,6 +49,7 @@ app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 
 // ─── API Routes ─────────────────────────────────────────────────────────────
 
+app.use("/auth", authRoutes);
 app.use("/", routes);
 
 // ─── Root Welcome Message ───────────────────────────────────────────────────
@@ -79,21 +95,35 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ─── Start Server ────────────────────────────────────────────────────────────
+// ─── Start Server & DB ───────────────────────────────────────────────────────
 
-app.listen(PORT, () => {
-  console.log("");
-  console.log("╔══════════════════════════════════════════════════╗");
-  console.log("║      🏠 Rental Scam Detector API is LIVE!        ║");
-  console.log("╠══════════════════════════════════════════════════╣");
-  console.log(`║  🚀 Server:   http://localhost:${PORT}               ║`);
-  console.log("║  📡 Endpoints:                                    ║");
-  console.log("║     POST  /analyze   → Analyze a listing          ║");
-  console.log("║     GET   /history   → View scan history           ║");
-  console.log("║     GET   /demo      → Sample listings             ║");
-  console.log("║     GET   /health    → Health check                ║");
-  console.log("╚══════════════════════════════════════════════════╝");
-  console.log("");
-});
+const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/ghostrent";
+
+mongoose
+  .connect(MONGO_URI)
+  .then(() => {
+    console.log("[MongoDB] Connected successfully");
+    app.listen(PORT, () => {
+      console.log("");
+      console.log("╔══════════════════════════════════════════════════╗");
+      console.log("║      🏠 Rental Scam Detector API is LIVE!        ║");
+      console.log("╠══════════════════════════════════════════════════╣");
+      console.log(`║  🚀 Server:   http://localhost:${PORT}               ║`);
+      console.log("║  📡 Endpoints:                                    ║");
+      console.log("║     POST  /auth/login                            ║");
+      console.log("║     POST  /auth/signup                           ║");
+      console.log("║     POST  /analyze   → Analyze a listing          ║");
+      console.log("║     GET   /history   → View scan history           ║");
+      console.log("║     GET   /demo      → Sample listings             ║");
+      console.log("║     GET   /health    → Health check                ║");
+      console.log("╚══════════════════════════════════════════════════╝");
+      console.log("");
+    });
+  })
+  .catch((err) => {
+    console.error("[MongoDB] Connection error:", err);
+    // Continue running even if DB fails initially, endpoints will return 500 when they try to use it
+    app.listen(PORT, () => console.log(`Server started without DB on port ${PORT}`));
+  });
 
 module.exports = app;
