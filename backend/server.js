@@ -1,101 +1,85 @@
-/**
- * ╔═══════════════════════════════════════════════════════════════════════╗
- * ║              RENTAL SCAM DETECTOR — Express API Server               ║
- * ║                                                                       ║
- * ║  Start with:  npm install && npm start                                ║
- * ║  Server runs on: http://localhost:3000                                ║
- * ║                                                                       ║
- * ║  Endpoints:                                                           ║
- * ║    POST /analyze    → Analyze a rental listing                        ║
- * ║    GET  /history    → View all previous scans                         ║
- * ║    GET  /demo       → See sample real + scam listings                 ║
- * ║    GET  /health     → Server health check                             ║
- * ╚═══════════════════════════════════════════════════════════════════════╝
- */
+require("dotenv").config();
 
-require("dotenv").config(); // Load .env variables (GROQ_API_KEY, etc.)
-
-const express = require("express");
-const cors    = require("cors");
-const helmet  = require("helmet");
-const morgan  = require("morgan");
-const mongoose = require("mongoose");
-const routes  = require("./routes/index");
+const express   = require("express");
+const cors      = require("cors");
+const helmet    = require("helmet");
+const morgan    = require("morgan");
+const mongoose  = require("mongoose");
+const apiRoutes = require("./routes/index");
 const authRoutes = require("./routes/auth");
 
-// ─── Process Crash Handlers ─────────────────────────────────────────────────
+// ─── Crash Handlers ───────────────────────────────────────────────────────────
+
 process.on("uncaughtException", (err) => {
   console.error("[CRITICAL] Uncaught Exception:", err);
-  // Keep server running as requested by user
 });
 
-process.on("unhandledRejection", (reason, promise) => {
-  console.error("[CRITICAL] Unhandled Rejection at:", promise, "reason:", reason);
-  // Keep server running
+process.on("unhandledRejection", (reason) => {
+  console.error("[CRITICAL] Unhandled Rejection:", reason);
 });
 
-// ─── App Setup ──────────────────────────────────────────────────────────────
+// ─── App Setup ────────────────────────────────────────────────────────────────
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
-// ─── Security & Utility Middleware ──────────────────────────────────────────
+// ─── Security & Middleware ────────────────────────────────────────────────────
 
-app.use(helmet());           // Sets security-related HTTP headers
-app.use(cors());             // Enables Cross-Origin requests (needed for frontend)
-app.use(morgan("dev"));      // HTTP request logger for development
-app.use(express.json({ limit: "2mb" }));       // Parse JSON bodies
-app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
+app.use(helmet());
+app.use(cors({
+  origin: process.env.CLIENT_ORIGIN || "*",
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
+app.use(morgan("dev"));
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true }));
 
-// ─── API Routes ─────────────────────────────────────────────────────────────
+// ─── Routes ───────────────────────────────────────────────────────────────────
 
 app.use("/auth", authRoutes);
-app.use("/", routes);
+app.use("/api",  apiRoutes);
 
-// ─── Root Welcome Message ───────────────────────────────────────────────────
+// ─── Root Info ────────────────────────────────────────────────────────────────
 
 app.get("/", (req, res) => {
   res.json({
-    service:     "🏠 Rental Scam Detector API",
-    version:     "1.0.0",
-    description: "AI-powered backend to detect rental listing scams",
+    service:     "🏠 GhostRent — AI Rental Scam Detector",
+    version:     "2.0.0",
+    description: "Text-based hybrid scam detection API (logic + AI)",
     endpoints: {
-      "POST /analyze": "Submit a listing for scam analysis",
-      "GET /history":  "View all previously scanned listings",
-      "GET /demo":     "Get sample real + scam test listings",
-      "GET /health":   "Server health check"
+      "POST /auth/signup":  "Register a new user",
+      "POST /auth/login":   "Login and receive JWT",
+      "GET  /auth/me":      "Get current user (JWT required)",
+      "POST /api/analyze":  "Analyze a listing for scam risk (JWT required)",
+      "GET  /api/history":  "Fetch scan history (JWT required)",
+      "GET  /api/health":   "Health check",
     },
-    quickStart: {
-      step1: "GET /demo  →  copy a sample input",
-      step2: "POST /analyze  →  paste it in the body",
-      step3: "Read the scam report in the response"
-    }
   });
 });
 
-// ─── 404 Handler ────────────────────────────────────────────────────────────
+// ─── 404 ──────────────────────────────────────────────────────────────────────
 
 app.use((req, res) => {
   res.status(404).json({
     success: false,
-    error: "Not Found",
+    error:   "Not Found",
     message: `Route ${req.method} ${req.path} does not exist.`,
-    availableRoutes: ["POST /analyze", "GET /history", "GET /demo", "GET /health"]
   });
 });
 
-// ─── Global Error Handler ───────────────────────────────────────────────────
+// ─── Global Error Handler ─────────────────────────────────────────────────────
 
 app.use((err, req, res, next) => {
   console.error("[Server Error]", err.stack);
   res.status(500).json({
     success: false,
-    error: "Internal Server Error",
-    message: err.message || "Something went wrong."
+    error:   "Internal Server Error",
+    message: err.message || "Something went wrong.",
   });
 });
 
-// ─── Start Server & DB ───────────────────────────────────────────────────────
+// ─── Database + Listen ────────────────────────────────────────────────────────
 
 const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/ghostrent";
 
@@ -106,24 +90,25 @@ mongoose
     app.listen(PORT, () => {
       console.log("");
       console.log("╔══════════════════════════════════════════════════╗");
-      console.log("║      🏠 Rental Scam Detector API is LIVE!        ║");
+      console.log("║         🏠 GhostRent API is LIVE!                ║");
       console.log("╠══════════════════════════════════════════════════╣");
-      console.log(`║  🚀 Server:   http://localhost:${PORT}               ║`);
+      console.log(`║  🚀 Server:  http://localhost:${PORT}                ║`);
       console.log("║  📡 Endpoints:                                    ║");
-      console.log("║     POST  /auth/login                            ║");
       console.log("║     POST  /auth/signup                           ║");
-      console.log("║     POST  /analyze   → Analyze a listing          ║");
-      console.log("║     GET   /history   → View scan history           ║");
-      console.log("║     GET   /demo      → Sample listings             ║");
-      console.log("║     GET   /health    → Health check                ║");
+      console.log("║     POST  /auth/login                            ║");
+      console.log("║     POST  /api/analyze  → Analyze listing        ║");
+      console.log("║     GET   /api/history  → Scan history           ║");
+      console.log("║     GET   /api/health   → Health check           ║");
       console.log("╚══════════════════════════════════════════════════╝");
       console.log("");
     });
   })
   .catch((err) => {
-    console.error("[MongoDB] Connection error:", err);
-    // Continue running even if DB fails initially, endpoints will return 500 when they try to use it
-    app.listen(PORT, () => console.log(`Server started without DB on port ${PORT}`));
+    console.error("[MongoDB] Connection error:", err.message);
+    // Start server anyway — routes needing DB will return 500
+    app.listen(PORT, () =>
+      console.log(`[Server] Running without DB on port ${PORT}`)
+    );
   });
 
 module.exports = app;

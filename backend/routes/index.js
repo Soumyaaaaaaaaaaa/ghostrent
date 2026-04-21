@@ -1,93 +1,70 @@
 /**
- * API ROUTES
- * Maps HTTP endpoints to controller functions.
+ * API ROUTES — /api/*
+ *
+ * All routes are prefixed with /api in server.js.
+ * Analysis and history routes require JWT authentication.
  */
 
-const express = require("express");
-const router = express.Router();
-const { analyze, history, demo } = require("../controllers/analyzeController");
+const express        = require("express");
+const router         = express.Router();
+const { analyze, history } = require("../controllers/analyzeController");
 const authMiddleware = require("../middleware/authMiddleware");
 
-// ─── Input Validation Middleware ────────────────────────────────────────────
+// ─── Input Validation Middleware ──────────────────────────────────────────────
 
-/**
- * Validates the /analyze request body.
- * Ensures at least a title or description is present to analyze.
- */
 const validateAnalyzeInput = (req, res, next) => {
-  const { title, description } = req.body;
+  const { url, description, price } = req.body;
 
-  // Must have at least some text to analyze
-  if (!title && !description) {
+  if (!url && !description) {
     return res.status(400).json({
       success: false,
-      error: "Validation failed",
-      message: "At least a 'title' or 'description' is required to analyze a listing."
-    });
-  }
-
-  // Price must be a number if provided
-  if (req.body.price !== undefined && isNaN(Number(req.body.price))) {
-    return res.status(400).json({
-      success: false,
-      error: "Validation failed",
-      message: "'price' must be a numeric value."
+      error:   "Validation failed",
+      message: "At least a listing title (url) or description is required.",
     });
   }
 
   // Coerce price to number
-  req.body.price = Number(req.body.price) || 0;
-
-  // Images must be an array
-  if (req.body.images && !Array.isArray(req.body.images)) {
-    req.body.images = [req.body.images];
+  if (req.body.price !== undefined) {
+    req.body.price = Number(req.body.price) || 0;
+    if (isNaN(req.body.price)) {
+      return res.status(400).json({
+        success: false,
+        error:   "Validation failed",
+        message: "'price' must be a numeric value.",
+      });
+    }
   }
 
   next();
 };
 
-// ─── Routes ─────────────────────────────────────────────────────────────────
+// ─── Routes ──────────────────────────────────────────────────────────────────
 
 /**
- * POST /analyze
- * Analyzes a rental listing and returns scam risk assessment.
+ * POST /api/analyze
+ * Analyzes a rental listing and returns a scam risk report.
  *
- * Body: { title, description, price, location, contact, images[], chatText }
+ * Body: { url, description, chat, price, location, contact }
  */
 router.post("/analyze", authMiddleware, validateAnalyzeInput, analyze);
 
 /**
- * GET /history
- * Returns all previously scanned listings summary.
+ * GET /api/history
+ * Returns the authenticated user's scan history (last 50).
  */
 router.get("/history", authMiddleware, history);
 
 /**
- * GET /demo
- * Returns sample real + scam listings for testing purposes.
- */
-router.get("/demo", demo);
-
-/**
- * POST /report
- * Store / acknowledge a user-flagged report. Returns a confirmation.
- * In production, this could trigger email alerts or write to a DB.
- */
-const { report } = require("../controllers/analyzeController");
-router.post("/report", report);
-
-/**
- * GET /health
- * Quick health check endpoint.
+ * GET /api/health
  */
 router.get("/health", (req, res) => {
   res.status(200).json({
-    success: true,
-    status: "OK",
-    service: "Rental Scam Detector API",
-    version: "1.0.0",
+    success:   true,
+    status:    "OK",
+    service:   "GhostRent API",
+    version:   "2.0.0",
     timestamp: new Date().toISOString(),
-    uptime: `${Math.floor(process.uptime())}s`
+    uptime:    `${Math.floor(process.uptime())}s`,
   });
 });
 

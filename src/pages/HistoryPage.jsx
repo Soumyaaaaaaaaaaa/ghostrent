@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import { useAuth } from '../context/AuthContext'
 
-const API = 'http://localhost:3000'
+const API = 'http://localhost:3000/api'
 const RISK_CLASS = { Low: 'low', Medium: 'medium', High: 'high' }
 const RISK_EMOJI = { Low: '🟢', Medium: '🟡', High: '🔴' }
 const SCAM_LABELS = {
@@ -76,19 +76,19 @@ export default function HistoryPage() {
         {stats && (
           <div className="history-stats-row">
             <div className="hist-stat-card">
-              <div className="hist-stat-val">{stats.totalScans}</div>
+              <div className="hist-stat-val">{stats.total}</div>
               <div className="hist-stat-lbl">Total Scans</div>
             </div>
             <div className="hist-stat-card danger">
-              <div className="hist-stat-val" style={{ color: 'var(--red)' }}>{stats.highRiskScans}</div>
+              <div className="hist-stat-val" style={{ color: 'var(--red)' }}>{stats.high}</div>
               <div className="hist-stat-lbl">High Risk</div>
             </div>
             <div className="hist-stat-card warn">
-              <div className="hist-stat-val" style={{ color: 'var(--yellow)' }}>{stats.mediumRiskScans}</div>
+              <div className="hist-stat-val" style={{ color: 'var(--yellow)' }}>{stats.medium}</div>
               <div className="hist-stat-lbl">Medium Risk</div>
             </div>
             <div className="hist-stat-card safe">
-              <div className="hist-stat-val" style={{ color: 'var(--green)' }}>{stats.lowRiskScans}</div>
+              <div className="hist-stat-val" style={{ color: 'var(--green)' }}>{stats.low}</div>
               <div className="hist-stat-lbl">Low Risk</div>
             </div>
           </div>

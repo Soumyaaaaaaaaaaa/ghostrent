@@ -20,6 +20,9 @@ dist-ssr
 backend/.env
 *.local
 
+# Local utility scripts
+cleanup.ps1
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
